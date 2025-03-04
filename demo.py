@@ -55,6 +55,15 @@ class BulkReplaceDialog(simpledialog.Dialog):
     def apply(self):
         global bulk_replace_pairs
         bulk_replace_pairs = self.pairs.copy()  # Update the global list with the modified pairs
+        self.write_prefs_and_notify()
+
+    def write_prefs_and_notify(self):
+        # Call the writePrefs function from the main app class
+        app.writePrefs()
+        # Show a popup message with the file location
+        config_dir = os.path.join(os.path.expanduser("~"), ".config", "ai-editor")
+        prefs_file = os.path.join(config_dir, "ai-editor-prefs.json")
+        messagebox.showinfo("Preferences Saved", f"Bulk replace preferences have been saved to:\n{prefs_file}")
 
 class SimpleTextEditor:
     def __init__(self, root):
@@ -182,6 +191,7 @@ class SimpleTextEditor:
         self.root.quit()
 
 def main():
+    global app
     root = tk.Tk()
     app = SimpleTextEditor(root)
     root.mainloop()
