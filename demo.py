@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-#!/usr/bin/env python3
 
+import os
+import json
 import tkinter as tk
 from tkinter import filedialog, simpledialog, messagebox
 
@@ -73,6 +74,9 @@ class SimpleTextEditor:
         # Bind hotkeys
         self.bind_hotkeys()
 
+        # Read preferences
+        self.readPrefs()
+
     def create_file_menu(self):
         file_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="File", menu=file_menu, underline=0)
@@ -80,7 +84,7 @@ class SimpleTextEditor:
         file_menu.add_command(label="Open", command=self.open_file, accelerator="Ctrl+O")
         file_menu.add_command(label="Save", command=self.save_file, accelerator="Ctrl+S")
         file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.root.quit, accelerator="Alt+F4")
+        file_menu.add_command(label="Exit", command=self.exit_app, accelerator="Alt+F4")
 
     def create_edit_menu(self):
         edit_menu = tk.Menu(self.menu_bar, tearoff=0)
@@ -102,7 +106,7 @@ class SimpleTextEditor:
         self.root.bind('<Control-n>', lambda e: self.new_file())
         self.root.bind('<Control-o>', lambda e: self.open_file())
         self.root.bind('<Control-s>', lambda e: self.save_file())
-        self.root.bind('<Alt-F4>', lambda e: self.root.quit())
+        self.root.bind('<Alt-F4>', lambda e: self.exit_app())
         self.root.bind('<Control-f>', lambda e: self.find_text())
         self.root.bind('<Control-h>', lambda e: self.bulk_replace())
 
@@ -152,6 +156,30 @@ class SimpleTextEditor:
                 content = content.replace(key.strip(), value.strip())
             self.text_area.delete("1.0", tk.END)
             self.text_area.insert(tk.END, content)
+
+    def readPrefs(self):
+        global bulk_replace_pairs
+        config_dir = os.path.join(os.path.expanduser("~"), ".config", "ai-editor")
+        prefs_file = os.path.join(config_dir, "ai-editor-prefs.json")
+
+        if os.path.exists(prefs_file):
+            with open(prefs_file, 'r') as file:
+                prefs = json.load(file)
+                bulk_replace_pairs.extend(prefs.get("bulk_replace_pairs", []))
+
+    def writePrefs(self):
+        global bulk_replace_pairs
+        config_dir = os.path.join(os.path.expanduser("~"), ".config", "ai-editor")
+        os.makedirs(config_dir, exist_ok=True)
+        prefs_file = os.path.join(config_dir, "ai-editor-prefs.json")
+
+        prefs = {"bulk_replace_pairs": bulk_replace_pairs}
+        with open(prefs_file, 'w') as file:
+            json.dump(prefs, file)
+
+    def exit_app(self):
+        self.writePrefs()
+        self.root.quit()
 
 def main():
     root = tk.Tk()
