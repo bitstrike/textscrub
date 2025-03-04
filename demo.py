@@ -7,6 +7,7 @@ from tkinter import filedialog, simpledialog, messagebox
 
 # Global list to store key-value pairs for bulk replacement
 bulk_replace_pairs = []
+selected_theme = "Standard"  # Default theme
 
 class BulkReplaceDialog(simpledialog.Dialog):
     def __init__(self, parent, title=None):
@@ -86,6 +87,9 @@ class SimpleTextEditor:
         # Read preferences
         self.readPrefs()
 
+        # Apply the saved theme
+        self.apply_theme(selected_theme)
+
     def create_file_menu(self):
         file_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="File", menu=file_menu, underline=0)
@@ -104,6 +108,14 @@ class SimpleTextEditor:
         edit_menu.add_command(label="Cut", command=self.cut_text, accelerator="Ctrl+X")
         edit_menu.add_command(label="Copy", command=self.copy_text, accelerator="Ctrl+C")
         edit_menu.add_command(label="Paste", command=self.paste_text, accelerator="Ctrl+V")
+        edit_menu.add_separator()
+
+        # Create theme submenu
+        theme_menu = tk.Menu(edit_menu, tearoff=0)
+        edit_menu.add_cascade(label="Theme", menu=theme_menu)
+        theme_menu.add_command(label="Standard", command=lambda: self.apply_theme("Standard"))
+        theme_menu.add_command(label="Dark", command=lambda: self.apply_theme("Dark"))
+        theme_menu.add_command(label="Light", command=lambda: self.apply_theme("Light"))
 
     def create_search_menu(self):
         search_menu = tk.Menu(self.menu_bar, tearoff=0)
@@ -166,8 +178,23 @@ class SimpleTextEditor:
             self.text_area.delete("1.0", tk.END)
             self.text_area.insert(tk.END, content)
 
+    def apply_theme(self, theme):
+        global selected_theme
+        theme_configs = {
+            "Standard": {"bg": "white", "fg": "black", "menu_bg": "lightgrey", "menu_fg": "black"},
+            "Dark": {"bg": "#002b36", "fg": "#839496", "menu_bg": "#073642", "menu_fg": "#839496"},
+            "Light": {"bg": "#fdf6e3", "fg": "#657b83", "menu_bg": "#eee8d5", "menu_fg": "#657b83"}
+        }
+
+        if theme in theme_configs:
+            config = theme_configs[theme]
+            self.text_area.config(bg=config["bg"], fg=config["fg"])
+            self.menu_bar.config(bg=config["menu_bg"], fg=config["menu_fg"])
+            self.root.config(bg=config["menu_bg"])
+            selected_theme = theme  # Update the selected theme
+
     def readPrefs(self):
-        global bulk_replace_pairs
+        global bulk_replace_pairs, selected_theme
         config_dir = os.path.join(os.path.expanduser("~"), ".config", "ai-editor")
         prefs_file = os.path.join(config_dir, "ai-editor-prefs.json")
 
@@ -175,14 +202,15 @@ class SimpleTextEditor:
             with open(prefs_file, 'r') as file:
                 prefs = json.load(file)
                 bulk_replace_pairs.extend(prefs.get("bulk_replace_pairs", []))
+                selected_theme = prefs.get("selected_theme", "Standard")
 
     def writePrefs(self):
-        global bulk_replace_pairs
+        global bulk_replace_pairs, selected_theme
         config_dir = os.path.join(os.path.expanduser("~"), ".config", "ai-editor")
         os.makedirs(config_dir, exist_ok=True)
         prefs_file = os.path.join(config_dir, "ai-editor-prefs.json")
 
-        prefs = {"bulk_replace_pairs": bulk_replace_pairs}
+        prefs = {"bulk_replace_pairs": bulk_replace_pairs, "selected_theme": selected_theme}
         with open(prefs_file, 'w') as file:
             json.dump(prefs, file)
 
