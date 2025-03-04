@@ -2,7 +2,7 @@
 #!/usr/bin/env python3
 
 import tkinter as tk
-from tkinter import simpledialog, messagebox
+from tkinter import filedialog, simpledialog, messagebox
 
 # Global list to store key-value pairs for bulk replacement
 bulk_replace_pairs = []
@@ -70,30 +70,41 @@ class SimpleTextEditor:
         self.create_edit_menu()
         self.create_search_menu()
 
+        # Bind hotkeys
+        self.bind_hotkeys()
+
     def create_file_menu(self):
         file_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="File", menu=file_menu)
-        file_menu.add_command(label="New", command=self.new_file)
-        file_menu.add_command(label="Open", command=self.open_file)
-        file_menu.add_command(label="Save", command=self.save_file)
+        self.menu_bar.add_cascade(label="File", menu=file_menu, underline=0)
+        file_menu.add_command(label="New", command=self.new_file, accelerator="Ctrl+N")
+        file_menu.add_command(label="Open", command=self.open_file, accelerator="Ctrl+O")
+        file_menu.add_command(label="Save", command=self.save_file, accelerator="Ctrl+S")
         file_menu.add_separator()
-        file_menu.add_command(label="Exit", command=self.root.quit)
+        file_menu.add_command(label="Exit", command=self.root.quit, accelerator="Alt+F4")
 
     def create_edit_menu(self):
         edit_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="Edit", menu=edit_menu)
-        edit_menu.add_command(label="Undo", command=self.text_area.edit_undo)
-        edit_menu.add_command(label="Redo", command=self.text_area.edit_redo)
+        self.menu_bar.add_cascade(label="Edit", menu=edit_menu, underline=0)
+        edit_menu.add_command(label="Undo", command=self.text_area.edit_undo, accelerator="Ctrl+Z")
+        edit_menu.add_command(label="Redo", command=self.text_area.edit_redo, accelerator="Ctrl+Y")
         edit_menu.add_separator()
-        edit_menu.add_command(label="Cut", command=self.cut_text)
-        edit_menu.add_command(label="Copy", command=self.copy_text)
-        edit_menu.add_command(label="Paste", command=self.paste_text)
+        edit_menu.add_command(label="Cut", command=self.cut_text, accelerator="Ctrl+X")
+        edit_menu.add_command(label="Copy", command=self.copy_text, accelerator="Ctrl+C")
+        edit_menu.add_command(label="Paste", command=self.paste_text, accelerator="Ctrl+V")
 
     def create_search_menu(self):
         search_menu = tk.Menu(self.menu_bar, tearoff=0)
-        self.menu_bar.add_cascade(label="Search", menu=search_menu)
-        search_menu.add_command(label="Find", command=self.find_text)
-        search_menu.add_command(label="Bulk Replace", command=self.bulk_replace)
+        self.menu_bar.add_cascade(label="Search", menu=search_menu, underline=0)
+        search_menu.add_command(label="Find", command=self.find_text, accelerator="Ctrl+F")
+        search_menu.add_command(label="Bulk Replace", command=self.bulk_replace, accelerator="Ctrl+H")
+
+    def bind_hotkeys(self):
+        self.root.bind('<Control-n>', lambda e: self.new_file())
+        self.root.bind('<Control-o>', lambda e: self.open_file())
+        self.root.bind('<Control-s>', lambda e: self.save_file())
+        self.root.bind('<Alt-F4>', lambda e: self.root.quit())
+        self.root.bind('<Control-f>', lambda e: self.find_text())
+        self.root.bind('<Control-h>', lambda e: self.bulk_replace())
 
     def new_file(self):
         self.text_area.delete(1.0, tk.END)
