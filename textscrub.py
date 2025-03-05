@@ -4,10 +4,15 @@ import os
 import json
 import tkinter as tk
 from tkinter import filedialog, simpledialog, messagebox
+import signal
+import sys
 
 # Global list to store key-value pairs for bulk replacement
 bulk_replace_pairs = []
 selected_theme = "Standard"  # Default theme
+
+STATUS_MESSAGE_DURATION_MS = 0
+
 
 class BulkReplaceDialog(simpledialog.Dialog):
     def __init__(self, parent, title=None):
@@ -55,21 +60,22 @@ class BulkReplaceDialog(simpledialog.Dialog):
 
     def apply(self):
         global bulk_replace_pairs
-        bulk_replace_pairs = self.pairs.copy()  # Update the global list with the modified pairs
+        #bulk_replace_pairs = self.pairs.copy()  # Update the global list with the modified pairs <-- REMOVED, WE DONT WANT TO DO THIS ANYMORE
         self.write_prefs_and_notify()
-
+        
     def write_prefs_and_notify(self):
-        # Call the writePrefs function from the main app class
         app.writePrefs()
-        # Show a popup message with the file location
         config_dir = os.path.join(os.path.expanduser("~"), ".config", "textscrub")
         prefs_file = os.path.join(config_dir, "textscrub-prefs.json")
-        messagebox.showinfo("Preferences Saved", f"Bulk replace preferences have been saved to:\n{prefs_file}")
+        app.update_status(f"Bulk hash saved to: {prefs_file}") #No popups, use status bar
+        #messagebox.showinfo("Preferences Saved", f"Bulk replace preferences have been saved to:\n{prefs_file}")
+       #self.master.set_status_bar_text(f"Bulk replace preferences saved to: {os.path.join(os.path.expanduser('~'), '.config', 'textscrub', 'textscrub-prefs.json')}")
+
 
 class SimpleTextEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("AI Bulk Editor")
+        self.root.title("TextScrub Editor")
 
         self.text_area = tk.Text(root, undo=True)
         self.text_area.pack(expand=True, fill='both')
@@ -80,6 +86,8 @@ class SimpleTextEditor:
         self.create_file_menu()
         self.create_edit_menu()
         self.create_search_menu()
+        
+        self.create_status_bar()
 
         # Bind hotkeys
         self.bind_hotkeys()
@@ -90,6 +98,74 @@ class SimpleTextEditor:
         # Apply the saved theme
         self.apply_theme(selected_theme)
 
+    def setup_signal_handling(self):
+        """
+        Set up robust signal handling for clean and immediate application exit.
+        
+        This method configures the application to respond immediately to 
+        interruption signals like SIGINT (Ctrl+C), ensuring:
+        - Preferences are saved before exiting
+        - Application exits without delay
+        - Clean shutdown of resources
+        """
+        # Use signal.signal to intercept SIGINT (Ctrl+C)
+        signal.signal(signal.SIGINT, self.handle_signal)
+        
+        # Optional: Also handle SIGTERM for consistent behavior across different 
+        # termination scenarios (e.g., when process is killed)
+        signal.signal(signal.SIGTERM, self.handle_signal)
+
+    def handle_signal(self, signum, frame):
+        """
+        Handle interruption signals with immediate and clean exit.
+        
+        Args:
+            signum (int): Signal number received (e.g., signal.SIGINT)
+            frame (frame): Current stack frame (not used in this implementation)
+        """
+        try:
+            # Immediately stop any ongoing tkinter main loop
+            self.root.after(0, self.root.quit)
+            
+            # Save application preferences before exiting
+            self.writePrefs()
+            
+            # Print exit message to console
+            print(f"\nReceived signal {signum}. Exiting application...")
+            
+            # Forcefully destroy all windows and exit
+            self.root.destroy()
+            sys.exit(0)
+        except Exception as e:
+            # Log any unexpected errors during exit
+            print(f"Error during signal handling: {e}")
+            sys.exit(1)
+
+
+        
+    def create_status_bar(self):
+        """Create a status bar at the bottom of the window."""
+        self.status_bar = tk.Label(
+            self.root,
+            #relief=tk.SUNKEN,
+            anchor=tk.W  # Left-aligned text
+        )
+        self.status_bar.pack(
+            side=tk.BOTTOM,
+            fill=tk.X,
+            padx=2,
+            pady=2
+        )
+    def update_status(self, message, duration=STATUS_MESSAGE_DURATION_MS):
+        """Update the status bar with a message.
+        Args:
+            message (str): Message to display
+            duration (int): How long to show the message in milliseconds
+        """
+        self.status_bar.config(text=message)
+        if duration > 0:
+            self.root.after(duration, lambda: self.update_status(""))
+            
     def create_file_menu(self):
         file_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="File", menu=file_menu, underline=0)
@@ -137,6 +213,8 @@ class SimpleTextEditor:
 
     def new_file(self):
         self.text_area.delete(1.0, tk.END)
+        self.update_status(f"New file created", STATUS_MESSAGE_DURATION_MS)
+
 
     def open_file(self):
         file_path = filedialog.askopenfilename()
@@ -146,6 +224,9 @@ class SimpleTextEditor:
                 self.text_area.delete(1.0, tk.END)
                 self.text_area.insert(tk.END, content)
 
+            self.update_status(f"Editing file {file_path}", STATUS_MESSAGE_DURATION_MS)
+
+
     def save_file(self):
         file_path = filedialog.asksaveasfilename(defaultextension=".txt",
                                                  filetypes=[("Text Files", "*.txt"), ("All Files", "*.*")])
@@ -153,6 +234,8 @@ class SimpleTextEditor:
             with open(file_path, 'w') as file:
                 content = self.text_area.get(1.0, tk.END)
                 file.write(content)
+            self.update_status(f"Saved {file_path}", STATUS_MESSAGE_DURATION_MS)
+
 
     def cut_text(self):
         self.text_area.event_generate("<<Cut>>")
@@ -163,33 +246,62 @@ class SimpleTextEditor:
     def paste_text(self):
         self.text_area.event_generate("<<Paste>>")
 
+
     def select_all(self):
+        # Select all text
         self.text_area.tag_add(tk.SEL, "1.0", tk.END)
         self.text_area.mark_set(tk.INSERT, "1.0")
         self.text_area.see(tk.INSERT)
+        
+        # Get selected text and count words
+        selected_text = self.text_area.get(tk.SEL_FIRST, tk.SEL_LAST)
+        word_count = len(selected_text.split())
+        
+        # Update status bar with word count
+        self.update_status(f"Selected {word_count} word{'s' if word_count != 1 else ''}", STATUS_MESSAGE_DURATION_MS)
 
     def find_text(self):
-        search_term = simpledialog.askstring("Search", "Enter text to find:")
-        if search_term:
-            start_pos = self.text_area.search(search_term, "1.0", tk.END)
-            if start_pos:
-                end_pos = f"{start_pos}+{len(search_term)}c"
-                self.text_area.tag_add(tk.SEL, start_pos, end_pos)
-                self.text_area.mark_set(tk.INSERT, end_pos)
-                self.text_area.see(tk.INSERT)
+        # Calculate center position
+        x = self.root.winfo_rootx() + (self.root.winfo_width() // 2) - 150
+        y = self.root.winfo_rooty() + (self.root.winfo_height() // 2) - 50
+        
+        # Create and position the dialog
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Search")
+        dialog.geometry(f"300x100+{x}+{y}")
+        
+        # Create the search entry
+        search_term = tk.StringVar()
+        entry = tk.Entry(dialog, textvariable=search_term)
+        entry.pack(pady=10)
+        
+        # Search function
+        def search():
+            term = search_term.get()
+            if term:
+                start_pos = self.text_area.search(term, "1.0", tk.END)
+                if start_pos:
+                    end_pos = f"{start_pos}+{len(term)}c"
+                    self.text_area.tag_add(tk.SEL, start_pos, end_pos)
+                    self.text_area.mark_set(tk.INSERT, end_pos)
+                    self.text_area.see(tk.INSERT)
+        
+        # Create search button
+        tk.Button(dialog, text="Find", command=search).pack(pady=5)
+        
+        # Focus on the entry field
+        entry.focus_set()
+
 
     def bulk_replace(self):
         dialog = BulkReplaceDialog(self.root, "Bulk Replace")
-        if dialog.pairs:
-            content = self.text_area.get("1.0", tk.END)
-            for key, value in dialog.pairs:
-                content = content.replace(key.strip(), value.strip())
-            self.text_area.delete("1.0", tk.END)
-            self.text_area.insert(tk.END, content)
 
     def replaceBulk(self):
+        global bulk_replace_pairs # Now load the values here, instead of at close
         content = self.text_area.get("1.0", tk.END)
         self.text_area.tag_remove("highlight", "1.0", tk.END)  # Remove existing highlights
+        replacement_count = 0
+        
         for key, value in bulk_replace_pairs:
             start_pos = "1.0"
             while start_pos:
@@ -199,10 +311,13 @@ class SimpleTextEditor:
                     self.text_area.delete(start_pos, end_pos)
                     self.text_area.insert(start_pos, value)
                     self.text_area.tag_add("highlight", start_pos, f"{start_pos}+{len(value)}c")
+                    replacement_count += 1
                     start_pos = end_pos
+        
         self.text_area.tag_config("highlight", background="yellow", foreground="black")
-
+        self.update_status(f"Performed {replacement_count} replacements", STATUS_MESSAGE_DURATION_MS)
     def apply_theme(self, theme):
+        # Ensure status bar exists before trying to configure it
         global selected_theme
         theme_configs = {
             "Standard": {"bg": "white", "fg": "black", "menu_bg": "lightgrey", "menu_fg": "black", "dialog_bg": "white"},
@@ -217,6 +332,8 @@ class SimpleTextEditor:
             self.root.config(bg=config["menu_bg"], menu=self.menu_bar)
             self.style_widgets(config["dialog_bg"], config["fg"])
             selected_theme = theme  # Update the selected theme
+            if hasattr(self, 'status_bar'):
+                self.status_bar.config(bg=config["menu_bg"], fg=config["menu_fg"])
 
     def style_widgets(self, bg_color, fg_color):
         # Style the root window and its children
@@ -252,11 +369,13 @@ class SimpleTextEditor:
         self.writePrefs()
         self.root.quit()
 
+
 def main():
     global app
     root = tk.Tk()
     app = SimpleTextEditor(root)
-    root.mainloop()
+    app.setup_signal_handling() #<-- setup signal handling
+    root.mainloop() #<-- Start the main loop
 
 if __name__ == "__main__":
     main()
