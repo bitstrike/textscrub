@@ -62,14 +62,14 @@ class BulkReplaceDialog(simpledialog.Dialog):
         # Call the writePrefs function from the main app class
         app.writePrefs()
         # Show a popup message with the file location
-        config_dir = os.path.join(os.path.expanduser("~"), ".config", "ai-editor")
-        prefs_file = os.path.join(config_dir, "ai-editor-prefs.json")
+        config_dir = os.path.join(os.path.expanduser("~"), ".config", "textscrub")
+        prefs_file = os.path.join(config_dir, "textscrub-prefs.json")
         messagebox.showinfo("Preferences Saved", f"Bulk replace preferences have been saved to:\n{prefs_file}")
 
 class SimpleTextEditor:
     def __init__(self, root):
         self.root = root
-        self.root.title("Simple Text Editor")
+        self.root.title("AI Bulk Editor")
 
         self.text_area = tk.Text(root, undo=True)
         self.text_area.pack(expand=True, fill='both')
@@ -108,6 +108,7 @@ class SimpleTextEditor:
         edit_menu.add_command(label="Cut", command=self.cut_text, accelerator="Ctrl+X")
         edit_menu.add_command(label="Copy", command=self.copy_text, accelerator="Ctrl+C")
         edit_menu.add_command(label="Paste", command=self.paste_text, accelerator="Ctrl+V")
+        edit_menu.add_command(label="Select All", command=self.select_all, accelerator="Ctrl+A")
         edit_menu.add_separator()
         edit_menu.add_command(label="ReplaceBulk", command=self.replaceBulk, accelerator="Ctrl+R")
 
@@ -132,6 +133,7 @@ class SimpleTextEditor:
         self.root.bind('<Control-f>', lambda e: self.find_text())
         self.root.bind('<Control-h>', lambda e: self.bulk_replace())
         self.root.bind('<Control-r>', lambda e: self.replaceBulk())
+        self.root.bind('<Control-a>', lambda e: self.select_all())
 
     def new_file(self):
         self.text_area.delete(1.0, tk.END)
@@ -161,6 +163,11 @@ class SimpleTextEditor:
     def paste_text(self):
         self.text_area.event_generate("<<Paste>>")
 
+    def select_all(self):
+        self.text_area.tag_add(tk.SEL, "1.0", tk.END)
+        self.text_area.mark_set(tk.INSERT, "1.0")
+        self.text_area.see(tk.INSERT)
+
     def find_text(self):
         search_term = simpledialog.askstring("Search", "Enter text to find:")
         if search_term:
@@ -186,7 +193,7 @@ class SimpleTextEditor:
         for key, value in bulk_replace_pairs:
             start_pos = "1.0"
             while start_pos:
-                start_pos = self.text_area.search(key, start_pos, tk.END)
+                start_pos = self.text_area.search(key, start_pos, tk.END, nocase=True)
                 if start_pos:
                     end_pos = f"{start_pos}+{len(key)}c"
                     self.text_area.delete(start_pos, end_pos)
@@ -222,8 +229,8 @@ class SimpleTextEditor:
 
     def readPrefs(self):
         global bulk_replace_pairs, selected_theme
-        config_dir = os.path.join(os.path.expanduser("~"), ".config", "ai-editor")
-        prefs_file = os.path.join(config_dir, "ai-editor-prefs.json")
+        config_dir = os.path.join(os.path.expanduser("~"), ".config", "textscrub")
+        prefs_file = os.path.join(config_dir, "textscrub-prefs.json")
 
         if os.path.exists(prefs_file):
             with open(prefs_file, 'r') as file:
@@ -233,9 +240,9 @@ class SimpleTextEditor:
 
     def writePrefs(self):
         global bulk_replace_pairs, selected_theme
-        config_dir = os.path.join(os.path.expanduser("~"), ".config", "ai-editor")
+        config_dir = os.path.join(os.path.expanduser("~"), ".config", "textscrub")
         os.makedirs(config_dir, exist_ok=True)
-        prefs_file = os.path.join(config_dir, "ai-editor-prefs.json")
+        prefs_file = os.path.join(config_dir, "textscrub-prefs.json")
 
         prefs = {"bulk_replace_pairs": bulk_replace_pairs, "selected_theme": selected_theme}
         with open(prefs_file, 'w') as file:
