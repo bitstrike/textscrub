@@ -109,6 +109,7 @@ class SimpleTextEditor:
         edit_menu.add_command(label="Copy", command=self.copy_text, accelerator="Ctrl+C")
         edit_menu.add_command(label="Paste", command=self.paste_text, accelerator="Ctrl+V")
         edit_menu.add_separator()
+        edit_menu.add_command(label="ReplaceBulk", command=self.replaceBulk, accelerator="Ctrl+R")
 
         # Create theme submenu
         theme_menu = tk.Menu(edit_menu, tearoff=0)
@@ -130,6 +131,7 @@ class SimpleTextEditor:
         self.root.bind('<Alt-F4>', lambda e: self.exit_app())
         self.root.bind('<Control-f>', lambda e: self.find_text())
         self.root.bind('<Control-h>', lambda e: self.bulk_replace())
+        self.root.bind('<Control-r>', lambda e: self.replaceBulk())
 
     def new_file(self):
         self.text_area.delete(1.0, tk.END)
@@ -178,20 +180,45 @@ class SimpleTextEditor:
             self.text_area.delete("1.0", tk.END)
             self.text_area.insert(tk.END, content)
 
+    def replaceBulk(self):
+        content = self.text_area.get("1.0", tk.END)
+        self.text_area.tag_remove("highlight", "1.0", tk.END)  # Remove existing highlights
+        for key, value in bulk_replace_pairs:
+            start_pos = "1.0"
+            while start_pos:
+                start_pos = self.text_area.search(key, start_pos, tk.END)
+                if start_pos:
+                    end_pos = f"{start_pos}+{len(key)}c"
+                    self.text_area.delete(start_pos, end_pos)
+                    self.text_area.insert(start_pos, value)
+                    self.text_area.tag_add("highlight", start_pos, f"{start_pos}+{len(value)}c")
+                    start_pos = end_pos
+        self.text_area.tag_config("highlight", background="yellow", foreground="black")
+
     def apply_theme(self, theme):
         global selected_theme
         theme_configs = {
-            "Standard": {"bg": "white", "fg": "black", "menu_bg": "lightgrey", "menu_fg": "black"},
-            "Dark": {"bg": "#002b36", "fg": "#839496", "menu_bg": "#073642", "menu_fg": "#839496"},
-            "Light": {"bg": "#fdf6e3", "fg": "#657b83", "menu_bg": "#eee8d5", "menu_fg": "#657b83"}
+            "Standard": {"bg": "white", "fg": "black", "menu_bg": "lightgrey", "menu_fg": "black", "dialog_bg": "white"},
+            "Dark": {"bg": "#002b36", "fg": "#839496", "menu_bg": "#073642", "menu_fg": "#839496", "dialog_bg": "#002b36"},
+            "Light": {"bg": "#fdf6e3", "fg": "#657b83", "menu_bg": "#eee8d5", "menu_fg": "#657b83", "dialog_bg": "#fdf6e3"}
         }
 
         if theme in theme_configs:
             config = theme_configs[theme]
             self.text_area.config(bg=config["bg"], fg=config["fg"])
             self.menu_bar.config(bg=config["menu_bg"], fg=config["menu_fg"])
-            self.root.config(bg=config["menu_bg"])
+            self.root.config(bg=config["menu_bg"], menu=self.menu_bar)
+            self.style_widgets(config["dialog_bg"], config["fg"])
             selected_theme = theme  # Update the selected theme
+
+    def style_widgets(self, bg_color, fg_color):
+        # Style the root window and its children
+        self.root.config(bg=bg_color)
+        for widget in self.root.winfo_children():
+            if isinstance(widget, tk.Menu):
+                widget.config(bg=bg_color, fg=fg_color)
+            else:
+                widget.config(bg=bg_color, fg=fg_color)
 
     def readPrefs(self):
         global bulk_replace_pairs, selected_theme
