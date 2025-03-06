@@ -16,33 +16,27 @@ STATUS_MESSAGE_DURATION_MS = 0
 
 class BulkReplaceDialog(simpledialog.Dialog):
     def __init__(self, parent, title=None):
-        self.pairs = bulk_replace_pairs.copy()  # Use a copy to avoid modifying the global list directly
+        self.pairs = bulk_replace_pairs.copy()  # Use a copy
         super().__init__(parent, title)
 
-    def body(self, master):
-        tk.Label(master, text="Enter key-value pairs for bulk replace:").grid(row=0, columnspan=2)
 
+    def body(self, master):
+        # Use grid layout consistently
+        tk.Label(master, text="Enter key-value pairs for bulk replace:").grid(row=0, columnspan=3, padx=5, pady=5) #expand the columnspan
         self.key_entry = tk.Entry(master)
         self.key_entry.grid(row=1, column=0, padx=5, pady=5)
-
         self.value_entry = tk.Entry(master)
         self.value_entry.grid(row=1, column=1, padx=5, pady=5)
-
         self.add_button = tk.Button(master, text="Add", command=self.add_pair)
         self.add_button.grid(row=1, column=2, padx=5, pady=5)
-
         self.pairs_listbox = tk.Listbox(master, height=6, width=50)
         self.pairs_listbox.grid(row=2, columnspan=3, padx=5, pady=5)
-
-        self.remove_button = tk.Button(master, text="Remove", command=self.remove_pair)
-        self.remove_button.grid(row=3, columnspan=3, padx=5, pady=5)
 
         # Populate the listbox with existing pairs
         for key, value in self.pairs:
             self.pairs_listbox.insert(tk.END, f"{key}: {value}")
-
         return self.key_entry  # Initial focus
-
+    
     def add_pair(self):
         key = self.key_entry.get().strip()
         value = self.value_entry.get().strip()
@@ -55,21 +49,53 @@ class BulkReplaceDialog(simpledialog.Dialog):
     def remove_pair(self):
         selected_index = self.pairs_listbox.curselection()
         if selected_index:
-            self.pairs_listbox.delete(selected_index)
-            del self.pairs[selected_index[0]]
+            index_to_delete = selected_index[0] #get the first element
+            self.pairs_listbox.delete(index_to_delete) #delete the item
+            del self.pairs[index_to_delete]          #delete the pair in the pairs list
+
 
     def apply(self):
         global bulk_replace_pairs
-        #bulk_replace_pairs = self.pairs.copy()  # Update the global list with the modified pairs <-- REMOVED, WE DONT WANT TO DO THIS ANYMORE
-        self.write_prefs_and_notify()
-        
+        bulk_replace_pairs = self.pairs.copy()  # Save the pairs
+        self.write_prefs_and_notify()  # Notify about saving
+        # Perform the replacement and highlighting
+        app.replaceBulk()
+        super().apply()  # Close the dialog
+
     def write_prefs_and_notify(self):
         app.writePrefs()
         config_dir = os.path.join(os.path.expanduser("~"), ".config", "textscrub")
         prefs_file = os.path.join(config_dir, "textscrub-prefs.json")
-        app.update_status(f"Bulk hash saved to: {prefs_file}") #No popups, use status bar
-        #messagebox.showinfo("Preferences Saved", f"Bulk replace preferences have been saved to:\n{prefs_file}")
-       #self.master.set_status_bar_text(f"Bulk replace preferences saved to: {os.path.join(os.path.expanduser('~'), '.config', 'textscrub', 'textscrub-prefs.json')}")
+        app.update_status(f"Bulk hash saved to: {prefs_file}")
+
+
+    def buttonbox(self):
+        """Override the default buttonbox"""
+        box = tk.Frame(self)
+
+        # Remove button
+        self.remove_button = tk.Button(box, text="Remove Item", command=self.remove_pair)
+        self.remove_button.pack(side=tk.LEFT, padx=5)
+
+        #save and replace button - pack it on the left
+        w = tk.Button(box, text="Save and Replace", command=self.ok, default=tk.ACTIVE)
+        w.pack(side=tk.LEFT, padx=5)
+
+        #cancel button - pack it on the left too
+        cancel = tk.Button(box, text="Cancel", command=self.cancel)
+        cancel.pack(side=tk.LEFT, padx=5)
+
+        box.pack(pady=5) #add pady to the button box
+        box.pack(side="top", anchor="center") # Center the button box horizontally
+
+
+        self.bind("<Return>", self.ok)
+        self.bind("<Escape>", self.cancel)
+
+    def cancel(self, event=None):
+        """Override cancel button"""
+        self.pairs = []  # Reset pairs - no changes
+        self.destroy()  # Destroy the dialog
 
 
 class SimpleTextEditor:
@@ -293,11 +319,29 @@ class SimpleTextEditor:
         entry.focus_set()
 
 
+
     def bulk_replace(self):
         dialog = BulkReplaceDialog(self.root, "Bulk Replace")
+        if dialog.pairs:  # Only perform replacement if the dialog returned pairs (Save and Replace)
+            content = self.text_area.get("1.0", tk.END)
+            self.text_area.tag_remove("highlight", "1.0", tk.END)
+            
+            for key, value in dialog.pairs:
+                start_pos = "1.0"
+                while start_pos:
+                    start_pos = self.text_area.search(key, start_pos, tk.END, nocase=True)
+                    if start_pos:
+                        end_pos = f"{start_pos}+{len(key)}c"
+                        self.text_area.delete(start_pos, end_pos)
+                        self.text_area.insert(start_pos, value)
+                        self.text_area.tag_add("highlight", start_pos, 
+                                            f"{start_pos}+{len(value)}c")
+            
+            self.text_area.tag_config("highlight", background="yellow", 
+                                    foreground="black")
+
 
     def replaceBulk(self):
-        global bulk_replace_pairs # Now load the values here, instead of at close
         content = self.text_area.get("1.0", tk.END)
         self.text_area.tag_remove("highlight", "1.0", tk.END)  # Remove existing highlights
         replacement_count = 0
@@ -316,25 +360,49 @@ class SimpleTextEditor:
         
         self.text_area.tag_config("highlight", background="yellow", foreground="black")
         self.update_status(f"Performed {replacement_count} replacements", STATUS_MESSAGE_DURATION_MS)
+
     def apply_theme(self, theme):
-        # Ensure status bar exists before trying to configure it
         global selected_theme
         theme_configs = {
-            "Standard": {"bg": "white", "fg": "black", "menu_bg": "lightgrey", "menu_fg": "black", "dialog_bg": "white"},
-            "Dark": {"bg": "#002b36", "fg": "#839496", "menu_bg": "#073642", "menu_fg": "#839496", "dialog_bg": "#002b36"},
-            "Light": {"bg": "#fdf6e3", "fg": "#657b83", "menu_bg": "#eee8d5", "menu_fg": "#657b83", "dialog_bg": "#fdf6e3"}
+            "Standard": {
+                "bg": "white",
+                "fg": "black",
+                "menu_bg": "lightgrey",
+                "menu_fg": "black",
+                "dialog_bg": "white",
+                "cursor_color": "black"  # Added cursor color
+            },
+            "Dark": {
+                "bg": "#002b36",
+                "fg": "#839496",
+                "menu_bg": "#073642",
+                "menu_fg": "#839496",
+                "dialog_bg": "#002b36",
+                "cursor_color": "white"  # Added cursor color
+            },
+            "Light": {
+                "bg": "#fdf6e3",
+                "fg": "#657b83",
+                "menu_bg": "#eee8d5",
+                "menu_fg": "#657b83",
+                "dialog_bg": "#fdf6e3",
+                "cursor_color": "black"  # Added cursor color
+            }
         }
-
+        
         if theme in theme_configs:
             config = theme_configs[theme]
-            self.text_area.config(bg=config["bg"], fg=config["fg"])
+            self.text_area.config(
+                bg=config["bg"],
+                fg=config["fg"],
+                insertbackground=config["cursor_color"]  # Added cursor color
+            )
             self.menu_bar.config(bg=config["menu_bg"], fg=config["menu_fg"])
             self.root.config(bg=config["menu_bg"], menu=self.menu_bar)
             self.style_widgets(config["dialog_bg"], config["fg"])
-            selected_theme = theme  # Update the selected theme
-            if hasattr(self, 'status_bar'):
-                self.status_bar.config(bg=config["menu_bg"], fg=config["menu_fg"])
-
+            selected_theme = theme
+            self.status_bar.config(bg=config["menu_bg"], fg=config["menu_fg"])
+            
     def style_widgets(self, bg_color, fg_color):
         # Style the root window and its children
         self.root.config(bg=bg_color)
