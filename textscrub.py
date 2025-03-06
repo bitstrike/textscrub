@@ -212,7 +212,9 @@ class SimpleTextEditor:
         edit_menu.add_command(label="Paste", command=self.paste_text, accelerator="Ctrl+V")
         edit_menu.add_command(label="Select All", command=self.select_all, accelerator="Ctrl+A")
         edit_menu.add_separator()
-        edit_menu.add_command(label="ReplaceBulk", command=self.replaceBulk, accelerator="Ctrl+R")
+        edit_menu.add_command(label="ReplaceBulk", command=self.replaceBulk, accelerator="Ctrl+R")        
+        edit_menu.add_command(label="Reverse Replace", command=self.bulk_replace, accelerator="Ctrl+G")
+
 
         # Create theme submenu
         theme_menu = tk.Menu(edit_menu, tearoff=0)
@@ -226,7 +228,7 @@ class SimpleTextEditor:
         self.menu_bar.add_cascade(label="Search", menu=search_menu, underline=0)
         search_menu.add_command(label="Find", command=self.find_text, accelerator="Ctrl+F")
         search_menu.add_command(label="Bulk Replace", command=self.bulk_replace, accelerator="Ctrl+B")
-
+        
     def bind_hotkeys(self):
         self.root.bind('<Control-n>', lambda e: self.new_file())
         self.root.bind('<Control-o>', lambda e: self.open_file())
@@ -236,6 +238,7 @@ class SimpleTextEditor:
         self.root.bind('<Control-b>', lambda e: self.bulk_replace())
         self.root.bind('<Control-r>', lambda e: self.replaceBulk())
         self.root.bind('<Control-a>', lambda e: self.select_all())
+        self.root.bind('<Control-g>', lambda e: self.bulkReplaceReverse())
 
     def new_file(self):
         self.text_area.delete(1.0, tk.END)
@@ -360,6 +363,29 @@ class SimpleTextEditor:
         
         self.text_area.tag_config("highlight", background="yellow", foreground="black")
         self.update_status(f"Performed {replacement_count} replacements", STATUS_MESSAGE_DURATION_MS)
+
+    def bulkReplaceReverse(self):
+        content = self.text_area.get("1.0", tk.END)  # Get entire text
+        self.text_area.tag_remove("highlight", "1.0", tk.END)  # Clear existing highlights
+        replacement_count = 0
+
+        for key, value in bulk_replace_pairs:
+            # Search for the VALUE and replace with the KEY
+            start_pos = "1.0"
+            while start_pos:
+                start_pos = self.text_area.search(value, start_pos, tk.END, nocase=True)
+                if start_pos:
+                    end_pos = f"{start_pos}+{len(value)}c"
+                    self.text_area.delete(start_pos, end_pos)  # Delete the value
+                    self.text_area.insert(start_pos, key)      # Insert the key
+                    self.text_area.tag_add("highlight", start_pos,
+                                            f"{start_pos}+{len(key)}c") #Highlight inserted Key
+                    replacement_count += 1
+                    start_pos = end_pos
+
+        self.text_area.tag_config("highlight", background="yellow", foreground="black")
+        self.update_status(f"Performed {replacement_count} reverse replacements", STATUS_MESSAGE_DURATION_MS)
+
 
     def apply_theme(self, theme):
         global selected_theme
