@@ -225,7 +225,7 @@ class SimpleTextEditor:
         search_menu = tk.Menu(self.menu_bar, tearoff=0)
         self.menu_bar.add_cascade(label="Search", menu=search_menu, underline=0)
         search_menu.add_command(label="Find", command=self.find_text, accelerator="Ctrl+F")
-        search_menu.add_command(label="Bulk Replace", command=self.bulk_replace, accelerator="Ctrl+H")
+        search_menu.add_command(label="Bulk Replace", command=self.bulk_replace, accelerator="Ctrl+B")
 
     def bind_hotkeys(self):
         self.root.bind('<Control-n>', lambda e: self.new_file())
@@ -233,7 +233,7 @@ class SimpleTextEditor:
         self.root.bind('<Control-s>', lambda e: self.save_file())
         self.root.bind('<Alt-F4>', lambda e: self.exit_app())
         self.root.bind('<Control-f>', lambda e: self.find_text())
-        self.root.bind('<Control-h>', lambda e: self.bulk_replace())
+        self.root.bind('<Control-b>', lambda e: self.bulk_replace())
         self.root.bind('<Control-r>', lambda e: self.replaceBulk())
         self.root.bind('<Control-a>', lambda e: self.select_all())
 
