@@ -1,6 +1,3 @@
-# textscrub
-Bulk Replace Tool for Text Sanitization
-=======
 # TextScrub: Bulk Replace Tool for Text Sanitization
 
 ## Overview
