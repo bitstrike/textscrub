@@ -228,7 +228,8 @@ class SimpleTextEditor:
         self.menu_bar.add_cascade(label="Search", menu=search_menu, underline=0)
         search_menu.add_command(label="Find", command=self.find_text, accelerator="Ctrl+F")
         search_menu.add_command(label="Bulk Replace", command=self.bulk_replace, accelerator="Ctrl+B")
-        
+    
+
     def bind_hotkeys(self):
         self.root.bind('<Control-n>', lambda e: self.new_file())
         self.root.bind('<Control-o>', lambda e: self.open_file())
@@ -289,7 +290,211 @@ class SimpleTextEditor:
         # Update status bar with word count
         self.update_status(f"Selected {word_count} word{'s' if word_count != 1 else ''}", STATUS_MESSAGE_DURATION_MS)
 
+
     def find_text(self):
+        # Calculate center position
+        x = self.root.winfo_rootx() + (self.root.winfo_width() // 2) - 150
+        y = self.root.winfo_rooty() + (self.root.winfo_height() // 2) - 50
+        
+        # Create and position the dialog
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Search")
+        dialog.geometry(f"300x100+{x}+{y}")
+        
+        # Ensure dialog stays on top
+        dialog.attributes('-topmost', True)
+        dialog.transient(self.root)  # Makes dialog modal relative to main window
+        
+        # Create the search entry
+        search_term = tk.StringVar()
+        entry = tk.Entry(dialog, textvariable=search_term)
+        entry.pack(pady=10)
+        
+        # Configure the highlight tag
+        self.text_area.tag_config("highlight", background="gray", foreground="black")
+        
+        # Ensure cursor visibility by setting insertbackground
+        current_theme = selected_theme
+        if current_theme == "Dark":
+            cursor_color = "white"
+        else:
+            cursor_color = "black"
+        self.text_area.config(insertbackground=cursor_color)
+        
+        def search():
+            # Remove previous highlights
+            self.text_area.tag_remove("highlight", "1.0", tk.END)
+            
+            term = search_term.get()
+            if not term:
+                return
+                    
+            # Find all instances and highlight them
+            start_pos = "1.0"
+            matches = []
+            
+            while True:
+                pos = self.text_area.search(term, start_pos, tk.END, nocase=True)
+                if not pos:
+                    break
+                        
+                end_pos = f"{pos}+{len(term)}c"
+                self.text_area.tag_add("highlight", pos, end_pos)
+                matches.append((pos, end_pos))
+                
+                # Move past current match
+                start_pos = end_pos
+            
+            # Update status bar with count
+            self.update_status(f"Found {len(matches)} matches", STATUS_MESSAGE_DURATION_MS)
+            
+            # Position cursor at first match if any found
+            if matches:
+                self.text_area.mark_set(tk.INSERT, matches[0][1])
+                self.text_area.see(tk.INSERT)
+                # Force update to ensure cursor is visible
+                self.text_area.update_idletasks()
+        
+        def next_match():
+            term = search_term.get()
+            if not term:
+                return
+                    
+            # Get current position
+            current_pos = self.text_area.index(tk.INSERT)
+            
+            # Find next instance starting after current position
+            next_pos = self.text_area.search(term, current_pos, tk.END, nocase=True)
+            
+            # If no more matches found, wrap around to beginning
+            if not next_pos:
+                next_pos = self.text_area.search(term, "1.0", tk.END, nocase=True)
+            
+            if next_pos:
+                end_pos = f"{next_pos}+{len(term)}c"
+                self.text_area.mark_set(tk.INSERT, end_pos)
+                self.text_area.see(tk.INSERT)
+                self.text_area.update_idletasks()  # Force update
+                
+                # Update status bar
+                self.update_status(f"Moved to match #{self.text_area.index(next_pos).split('.')[1]}", 
+                                STATUS_MESSAGE_DURATION_MS)
+        
+        # Create buttons
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(pady=5)
+        
+        tk.Button(button_frame, text="Find All", command=search).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Next", command=next_match).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Close", command=dialog.destroy).pack(side=tk.LEFT, padx=5)
+
+        # Bind Escape key to close dialog
+        dialog.bind("<Escape>", lambda e: dialog.destroy())
+
+        # Focus on the entry field
+        entry.focus_set()
+
+
+    def old_phind_find_text(self):
+        # Calculate center position
+        x = self.root.winfo_rootx() + (self.root.winfo_width() // 2) - 150
+        y = self.root.winfo_rooty() + (self.root.winfo_height() // 2) - 50
+        
+        # Create and position the dialog
+        dialog = tk.Toplevel(self.root)
+        dialog.title("Search")
+        dialog.geometry(f"300x100+{x}+{y}")
+        
+        # Create the search entry
+        search_term = tk.StringVar()
+        entry = tk.Entry(dialog, textvariable=search_term)
+        entry.pack(pady=10)
+        
+        # Configure the highlight tag
+        self.text_area.tag_config("highlight", background="gray", foreground="black")
+        
+        # Ensure cursor visibility by setting insertbackground
+        current_theme = selected_theme
+        if current_theme == "Dark":
+            cursor_color = "white"
+        else:
+            cursor_color = "black"
+        self.text_area.config(insertbackground=cursor_color)
+        
+        def search():
+            # Remove previous highlights
+            self.text_area.tag_remove("highlight", "1.0", tk.END)
+            
+            term = search_term.get()
+            if not term:
+                return
+                
+            # Find all instances and highlight them
+            start_pos = "1.0"
+            matches = []
+            
+            while True:
+                pos = self.text_area.search(term, start_pos, tk.END, nocase=True)
+                if not pos:
+                    break
+                    
+                end_pos = f"{pos}+{len(term)}c"
+                self.text_area.tag_add("highlight", pos, end_pos)
+                matches.append((pos, end_pos))
+                
+                # Move past current match
+                start_pos = end_pos
+            
+            # Update status bar with count
+            self.update_status(f"Found {len(matches)} matches", STATUS_MESSAGE_DURATION_MS)
+            
+            # Position cursor at first match if any found
+            if matches:
+                self.text_area.mark_set(tk.INSERT, matches[0][1])
+                self.text_area.see(tk.INSERT)
+                # Force update to ensure cursor is visible
+                self.text_area.update_idletasks()
+        
+        def next_match():
+            term = search_term.get()
+            if not term:
+                return
+                
+            # Get current position
+            current_pos = self.text_area.index(tk.INSERT)
+            
+            # Find next instance starting after current position
+            next_pos = self.text_area.search(term, current_pos, tk.END, nocase=True)
+            
+            # If no more matches found, wrap around to beginning
+            if not next_pos:
+                next_pos = self.text_area.search(term, "1.0", tk.END, nocase=True)
+            
+            if next_pos:
+                end_pos = f"{next_pos}+{len(term)}c"
+                self.text_area.mark_set(tk.INSERT, end_pos)
+                self.text_area.see(tk.INSERT)
+                self.text_area.update_idletasks()  # Force update
+                
+                # Update status bar
+                self.update_status(f"Moved to match #{self.text_area.index(next_pos).split('.')[1]}", 
+                                STATUS_MESSAGE_DURATION_MS)
+        
+        # Create buttons
+        button_frame = tk.Frame(dialog)
+        button_frame.pack(pady=5)
+        
+        tk.Button(button_frame, text="Find All", command=search).pack(side=tk.LEFT, padx=5)
+        tk.Button(button_frame, text="Next", command=next_match).pack(side=tk.LEFT, padx=5)
+
+        # Bind Escape key to close dialog
+        dialog.bind("<Escape>", lambda e: dialog.destroy())
+
+        # Focus on the entry field
+        entry.focus_set()
+
+
+    def old_find_text(self):
         # Calculate center position
         x = self.root.winfo_rootx() + (self.root.winfo_width() // 2) - 150
         y = self.root.winfo_rooty() + (self.root.winfo_height() // 2) - 50
