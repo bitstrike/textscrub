@@ -1,5 +1,6 @@
 # TextScrub: Bulk Replace Tool for Text Sanitization
 
+
 ## Overview
 TextScrub is a simple text editor designed to aid in redacting text by bulk replacing specified keywords. This tool is particularly useful for preparing text to be pasted into AI chat by removing or replacing sensitive identifiers with more anonymous data. What makes this a little more handy than a regular text editor is that you define a list of key/value pairs for replacement in bulk rather than one word at a time. This list is saved to a json file in your home directory so it's available when you launch the editor again.
 
