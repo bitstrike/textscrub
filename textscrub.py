@@ -530,24 +530,23 @@ class SimpleTextEditor:
 
     def bulk_replace(self):
         dialog = BulkReplaceDialog(self.root, "Bulk Replace")
-        if dialog.pairs:  # Only perform replacement if the dialog returned pairs (Save and Replace)
-            content = self.text_area.get("1.0", tk.END)
-            self.text_area.tag_remove("highlight", "1.0", tk.END)
-            
-            for key, value in dialog.pairs:
-                start_pos = "1.0"
-                while start_pos:
-                    start_pos = self.text_area.search(key, start_pos, tk.END, nocase=True)
-                    if start_pos:
-                        end_pos = f"{start_pos}+{len(key)}c"
-                        self.text_area.delete(start_pos, end_pos)
-                        self.text_area.insert(start_pos, value)
-                        self.text_area.tag_add("highlight", start_pos, 
-                                            f"{start_pos}+{len(value)}c")
-            
-            self.text_area.tag_config("highlight", background="yellow", 
-                                    foreground="black")
-
+        #if dialog.pairs:  # Only perform replacement if the dialog returned pairs (Save and Replace)
+        #    content = self.text_area.get("1.0", tk.END)
+        #    self.text_area.tag_remove("highlight", "1.0", tk.END)
+        #
+        #    for key, value in dialog.pairs:
+        #        start_pos = "1.0"
+        #        while start_pos:
+        #            start_pos = self.text_area.search(key, start_pos, tk.END, nocase=True)
+        #            if start_pos:
+        #                end_pos = f"{start_pos}+{len(key)}c"
+        #                self.text_area.delete(start_pos, end_pos)
+        #                self.text_area.insert(start_pos, value)
+        #                self.text_area.tag_add("highlight", start_pos,
+        #                                    f"{start_pos}+{len(value)}c")
+        #
+        #    self.text_area.tag_config("highlight", background="yellow",
+        #                            foreground="black")
 
     def replaceBulk(self):
         content = self.text_area.get("1.0", tk.END)
@@ -555,13 +554,14 @@ class SimpleTextEditor:
         replacement_count = 0
         
         for key, value in bulk_replace_pairs:
+            search_key = key  # Use key directly for case-sensitive replacement
             start_pos = "1.0"
             while start_pos:
-                start_pos = self.text_area.search(key, start_pos, tk.END, nocase=True)
+                start_pos = self.text_area.search(search_key, start_pos, tk.END, nocase=True) # Case-insensitive search for the key
                 if start_pos:
-                    end_pos = f"{start_pos}+{len(key)}c"
+                    end_pos = f"{start_pos}+{len(key)}c"  # Use original key's length
                     self.text_area.delete(start_pos, end_pos)
-                    self.text_area.insert(start_pos, value)
+                    self.text_area.insert(start_pos, value)  # Insert value with original key's case
                     self.text_area.tag_add("highlight", start_pos, f"{start_pos}+{len(value)}c")
                     replacement_count += 1
                     start_pos = end_pos
@@ -575,14 +575,14 @@ class SimpleTextEditor:
         replacement_count = 0
 
         for key, value in bulk_replace_pairs:
-            # Search for the VALUE and replace with the KEY
+            search_value = value    # Use value for reverse search (case-insensitive)
             start_pos = "1.0"
             while start_pos:
-                start_pos = self.text_area.search(value, start_pos, tk.END, nocase=True)
+                start_pos = self.text_area.search(search_value, start_pos, tk.END, nocase=True) #Case-insensitive search for the value
                 if start_pos:
                     end_pos = f"{start_pos}+{len(value)}c"
                     self.text_area.delete(start_pos, end_pos)  # Delete the value
-                    self.text_area.insert(start_pos, key)      # Insert the key
+                    self.text_area.insert(start_pos, key)      # Insert the key (original case)
                     self.text_area.tag_add("highlight", start_pos,
                                             f"{start_pos}+{len(key)}c") #Highlight inserted Key
                     replacement_count += 1
