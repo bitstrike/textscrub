@@ -147,6 +147,9 @@ class SimpleTextEditor(Gtk.Application):
         self.text_view.set_wrap_mode(Gtk.WrapMode.WORD)
         scrolled_window.add(self.text_view)
 
+        # Enable undo and redo
+        self.text_buffer.set_can_undo(True)
+
         # Create status bar
         self.status_bar = Gtk.Statusbar()
         self.context_id = self.status_bar.get_context_id("main")
@@ -207,6 +210,16 @@ class SimpleTextEditor(Gtk.Application):
         edit_button.set_popup(edit_menu)
 
         # Edit menu items
+        undo_item = Gtk.MenuItem(label="Undo")
+        undo_item.connect("activate", self.on_undo)
+        edit_menu.append(undo_item)
+
+        redo_item = Gtk.MenuItem(label="Redo")
+        redo_item.connect("activate", self.on_redo)
+        edit_menu.append(redo_item)
+
+        edit_menu.append(Gtk.SeparatorMenuItem())
+
         cut_item = Gtk.MenuItem(label="Cut")
         cut_item.connect("activate", self.on_cut_text)
         edit_menu.append(cut_item)
@@ -359,6 +372,12 @@ class SimpleTextEditor(Gtk.Application):
                 return True
             elif keyval_name == 'g':
                 self.on_bulk_replace_reverse(widget)
+                return True
+            elif keyval_name == 'z':
+                self.on_undo(widget)
+                return True
+            elif keyval_name == 'y':
+                self.on_redo(widget)
                 return True
 
         return False  # Continue event propagation
@@ -716,6 +735,16 @@ class SimpleTextEditor(Gtk.Application):
                 lower_text = current_text.lower()
 
         self.update_status(f"Performed {replacement_count} reverse replacements", STATUS_MESSAGE_DURATION_MS)
+
+    def on_undo(self, widget):
+        """Undo the last action"""
+        if self.text_buffer.can_undo():
+            self.text_buffer.undo()
+
+    def on_redo(self, widget):
+        """Redo the last undone action"""
+        if self.text_buffer.can_redo():
+            self.text_buffer.redo()
 
     def apply_theme(self, theme):
         """Apply the selected theme to the UI"""
