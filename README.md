@@ -54,7 +54,7 @@ I lost some percentage of my eyesight while developing this due to the default w
 5. **Shake the AI Sprinkles**: paste the redacted text into whichever probabilistec generative text munging turbo encabulator of your choice and appreciate that your sensitive data hasn't spilled into yet another crevasse of the internet.
 
 ## Preferences
-The application saves preferences, including the selected theme and bulk replace pairs, to a JSON file located at `~/.config/ai-editor/ai-editor-prefs.json`. These preferences are loaded automatically when the application starts. They save when you close the dialog or choose File -> Exit from the menu.
+The application saves preferences, including the selected theme and bulk replace pairs, to a JSON file located at `~/.config/textscrubr/textscrub-prefs.json`. These preferences are loaded automatically when the application starts. They save when you close the dialog or choose File -> Exit from the menu.
 
 ## Contributing
 Contributions are welcome, well, actually just fork it. I have enough merge conflicts at my day job.
