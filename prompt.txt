@@ -1,0 +1,59 @@
+this is for Linux. Step by step, write a simple text editor in python using gtk by way of the Gtk, Gdk, GLib python libraries for python3.  
+
+There is a menu bar and a status bar at the bottom. actions in the editor print status messages in the status bar to indicate to the user an operation happened, or a menu item was selected. 
+here is an ascii represenation of the layout. The initial window size is set by the window_x = 1000 and window_y = 800 sizes preset in an EditorConfig class. 
+
++--------------------------------------+
+| File Edit Search                     |
++--------------------------------------+
+|                                      | 
+|                                      | 
+|                                      | 
+|                                      | 
+|                                      | 
+|         Text Editor                  | 
+|                                      | 
+|                                      | 
+|                                      | 
+|                                      | 
+|                                      | 
+|                                      | 
+|                                      | 
++--------------------------------------+
+|  status bar                          |
++--------------------------------------+
+
+
+Three color themes are available. 1) standard default theme using the desktop colore theme settings . 2) a solarized light theme. 3) solarized dark theme.  When a theme is selected, the menu bar, status bur, menu items, font color, editor window background, editor window foreground color will change and persist by writing the selected theme to ~/.config/textscrub/textscrub-prefs.json
+
+The edit menu has a  "theme" submenu item for selecting the theme. When "default" is selected from the theme submenu, the default gtk theme should be applied. This would be the theme that is specified as the users current gtk theme which is applied to any gtk application in there desktop environment.  Typically the default theme would be applied through a desktop configuration tool for the running desktop environment so all gtk applications running would have a common theme selected by the user. The default system theme can be obtained by using Gtk.Settings.get_default().get_property("gtk-theme-name"). step-by-step, Ensure all text widgets and fonts are configured correctly when changing themes.
+
+
+A bulk replace dialog is implemented which configures a python dictionary of key/value pairs. The dialog has two text input fields at the top for the key, and the value, and a button to "Add" the pair to the dictionary. Under the text input fields is a scrollable list of  key/value pairs currently in the dictionary.  The dialog should make room for "MAX_LIST_ROWS = 8" rows of items to be displayed. Under the list of  pairs are three buttons horizontally spaced named Save, Cancel and Replace. Save button saves the current list of items to the prefs file. Cancel button closes the dialog without saving any changes. Replace button calls the replace_bulk() method which replaces all keys found (case insensitive) in the text editor text with the values (case sensitive replacements). If the Replace button is selected again, the replacement is reversed, replacing all dictionary values found in editor with the keys found in the editor. Whenever a word is modified by the replacement, the word is higlighted with a yellow background and black foreground which persists until the word is changed, modifed, or deleted. This gives a visual indictor to the user of what replacements happened where. The status bar will update to show the number of words replaced.
+
+An ascii representation of the dialog layout is below. initial sizes of the dialog are configured in teh EditorConfig class using bulk_dialog_x = 600 bulk_dialog_y = 400.
+
+
++--------------------------------------+
+|  __________   __________             |
+| [__________] [__________] [Add]      |
+|                                      |
+| +-----------------------+            | 
+| |                       |            | 
+| |                       |            | 
+| |                       |            | 
+| |                       | [Remove]   |
+| |                       |            | 
+| |                       |            | 
+| |                       |            | 
+| |                       |            | 
+| +-----------------------+            | 
+|                                      | 
+| [Save]  [Cancel] [Replace]           | 
+|                                      | 
++--------------------------------------+
+
+
+
+
+
