@@ -396,10 +396,11 @@ class BulkReplaceDialog(Gtk.Dialog):
 
 class SearchDialog(Gtk.Dialog):
     """Dialog for searching text in the document."""
-    def __init__(self, parent, text_buffer):
-        super().__init__(title="Search", transient_for=parent, modal=True)
+    def __init__(self, parent_window, app, text_buffer):
+        super().__init__(title="Search", transient_for=parent_window, modal=True)
         self.set_default_size(400, 100)
-        self.parent = parent
+        self.parent_window = parent_window
+        self.app = app
         self.text_buffer = text_buffer
         self.search_tag = self.text_buffer.create_tag(
             "search_highlight",
@@ -499,9 +500,9 @@ class SearchDialog(Gtk.Dialog):
             self.current_match = 0
             self._highlight_matches()
             self._scroll_to_match(self.current_match)
-            self.parent.update_status(f"Found {len(matches)} matches")
+            self.app.update_status(f"Found {len(matches)} matches")
         else:
-            self.parent.update_status("No matches found")
+            self.app.update_status("No matches found")
 
     def _highlight_matches(self):
         """Highlight all matches in the text buffer."""
@@ -522,7 +523,7 @@ class SearchDialog(Gtk.Dialog):
         match_end = self.text_buffer.get_iter_at_offset(match.end())
         
         # Get the TextScrubApp instance from the window
-        app = self.parent.get_application()
+        app = self.parent_window.get_application()
         
         # Select the text
         self.text_buffer.select_range(match_start, match_end)
@@ -543,7 +544,7 @@ class SearchDialog(Gtk.Dialog):
         self._scroll_to_match(self.current_match)
         
         # Get the TextScrubApp instance from the window
-        app = self.parent.get_application()
+        app = self.parent_window.get_application()
         
         # Update status using the application instance
         app.update_status(f"Match {self.current_match + 1} of {len(self.matches)}")
@@ -555,7 +556,7 @@ class SearchDialog(Gtk.Dialog):
 
         self.current_match = (self.current_match - 1) % len(self.matches)
         self._scroll_to_match(self.current_match)
-        self.parent.update_status(f"Match {self.current_match + 1} of {len(self.matches)}")
+        app.update_status(f"Match {self.current_match + 1} of {len(self.matches)}")
 
     def _on_close_clicked(self, widget):
         """Close the search dialog."""
@@ -975,7 +976,7 @@ class TextScrubApp(Gtk.Application):
 
     def _on_find_clicked(self, widget):
         """Handle Find menu item."""
-        search_dialog = SearchDialog(self.window, self.text_buffer)
+        search_dialog = SearchDialog(self.window, self, self.text_buffer)
         search_dialog.run()
         search_dialog.destroy()
 
