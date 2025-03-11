@@ -1,7 +1,14 @@
-this is for Linux. Step by step, write a simple text editor in python using gtk by way of the Gtk, Gdk, GLib python libraries for python3.  
+this is for Linux. Create a simple text editor in python using gtk by way of the Gtk, Gdk, GLib python 
+libraries for python3. Comment the code as needed to ensure it the intent of the code is understandable yet concise.
 
-There is a menu bar and a status bar at the bottom. actions in the editor print status messages in the status bar to indicate to the user an operation happened, or a menu item was selected. 
-here is an ascii represenation of the layout. The initial window size is set by the window_x = 1000 and window_y = 800 sizes preset in an EditorConfig class. 
+There is a menu bar at the top of the window and a status bar at the bottom. 
+
+In between is a text editor window which implements all standard text editor actions. This should be built with a gtk widget that supports undo, redo, syntax highlighting and more.
+Actions in the application print status messages in the status bar to indicate to the user an operation happened, 
+or a menu item was selected. 
+
+Here is an ascii represenation of the layout. The initial window size is set by the window_x = 1000 and window_y = 800 
+sizes preset in an EditorConfig class. 
 
 +--------------------------------------+
 | File Edit Search                     |
@@ -23,15 +30,52 @@ here is an ascii represenation of the layout. The initial window size is set by 
 |  status bar                          |
 +--------------------------------------+
 
+The Menu bar will have the following items implemented with standard hotkeys: File, Edit, Search. create methods for each operation.
 
-Three color themes are available. 1) standard default theme using the desktop colore theme settings . 2) a solarized light theme. 3) solarized dark theme.  When a theme is selected, the menu bar, status bur, menu items, font color, editor window background, editor window foreground color will change and persist by writing the selected theme to ~/.config/textscrub/textscrub-prefs.json
+The File menu will have the standard items for Open, Save, New, Exit implemented along with hotkeys for each item. Create methods for each operation.
 
-The edit menu has a  "theme" submenu item for selecting the theme. When "default" is selected from the theme submenu, the default gtk theme should be applied. This would be the theme that is specified as the users current gtk theme which is applied to any gtk application in there desktop environment.  Typically the default theme would be applied through a desktop configuration tool for the running desktop environment so all gtk applications running would have a common theme selected by the user. The default system theme can be obtained by using Gtk.Settings.get_default().get_property("gtk-theme-name"). step-by-step, Ensure all text widgets and fonts are configured correctly when changing themes.
+The Edit menu will implement the standard menu items for: Undo, Redo, Copy, Cut, Paste with thee additional items named Theme, Font, and Bulk Replace.
+Create methods for each operation. An option for toggling word wrap should be implemented as a check box.
 
+The Theme menu will have Three subitems available to select the color themes to apply to the entire application:
+1) standard default theme using the desktop colore theme settings. This should apply the default theme to the widgets as if no them were applied at all in the application.
+2) a solarized light theme. 
+3) solarized dark theme.  
 
-A bulk replace dialog is implemented which configures a python dictionary of key/value pairs. The dialog has two text input fields at the top for the key, and the value, and a button to "Add" the pair to the dictionary. Under the text input fields is a scrollable list of  key/value pairs currently in the dictionary.  The dialog should make room for "MAX_LIST_ROWS = 8" rows of items to be displayed. Under the list of  pairs are three buttons horizontally spaced named Save, Cancel and Replace. Save button saves the current list of items to the prefs file. Cancel button closes the dialog without saving any changes. Replace button calls the replace_bulk() method which replaces all keys found (case insensitive) in the text editor text with the values (case sensitive replacements). If the Replace button is selected again, the replacement is reversed, replacing all dictionary values found in editor with the keys found in the editor. Whenever a word is modified by the replacement, the word is higlighted with a yellow background and black foreground which persists until the word is changed, modifed, or deleted. This gives a visual indictor to the user of what replacements happened where. The status bar will update to show the number of words replaced.
+When "default" is selected from the theme submenu, the default gtk theme should be applied. 
+This would be the theme that is specified as the users current gtk theme which 
+is applied to any gtk application in there desktop environment.  Typically the default theme for the desktop is applied through 
+a desktop configuration tool when running the Linux desktop environment (cuch as Cinnamon) so all gtk applications running would 
+have a common theme selected by the user. The default system theme can be obtained by using:  
 
-An ascii representation of the dialog layout is below. initial sizes of the dialog are configured in teh EditorConfig class using bulk_dialog_x = 600 bulk_dialog_y = 400.
+   GtkSettings* gtk_settings_get_default ( void)
+
+When a theme is selected, the menu bar, status bur, menu items, font color, font size, foreground color and  background color of the application will follow the selected theme.
+The selected theme will be applied immediately and persist by writing the selected theme to ~/.config/textscrub/textscrub-prefs.json. This will be read on startup and applied to
+the application when it starts. A sample preferences content is here: {"theme":"default", "font": "Roboto Mono Medium for Powerline Medium 14",  "bulk_replace_dict": {"perro": "dog", "gato": "cat","vaca": "cow", "pez": "fish"  }}
+
+ 
+Ensure all text widgets and fonts are configured correctly when changing themes. The gtk function g_object_set(gtk_settings_get_default()... may need to be considered when changing the default theme to ensure all widgets receive the correct theme change.
+
+The "Font" menu item activates a font selector dialog to select a font and size to use in the editor.  When the font is selected write the
+selected font and size to the preferences file and apply the font to the text in the edit window.  Ensure the font and size is read from the preferences and applied to the editor on startup
+
+The Bulk Replace menu item creates a dialog which configures a python dictionary of key/value pairs. 
+
+The dialog has two text input fields at the top for the key, and the value, and a button to "Add" the pair to the dictionary. 
+Under the text input fields is a scrollable list of  key/value pairs currently in the dictionary.  The dialog should make 
+room for "MAX_LIST_ROWS = 8" rows of items to be displayed. Under the list of  pairs are three buttons horizontally 
+spaced named Save, Cancel and Replace. Save button saves the current list of items to the prefs file. Cancel button 
+closes the dialog without saving any changes. Replace button calls the replace_bulk() method which replaces all keys 
+found (case insensitive) in the text editor text with the values (case sensitive replacements). 
+
+If the Replace button is selected again, the replacement is reversed, replacing all dictionary values found in editor with the keys found in the editor. 
+Whenever a word is modified by the replacement, the word is higlighted with a yellow background and black foreground which p
+ersists until the word is changed, modifed, or deleted. This gives a visual indictor to the user of what replacements 
+happened where. The status bar will update to show the number of words replaced. A hotkey to activate the replacement method shoudl be configured
+
+An ascii representation of the dialog layout is below. initial sizes of the dialog are configured in teh 
+EditorConfig class using bulk_dialog_x = 600 bulk_dialog_y = 400.
 
 
 +--------------------------------------+
@@ -54,6 +98,8 @@ An ascii representation of the dialog layout is below. initial sizes of the dial
 +--------------------------------------+
 
 
+Important Error Note:
 
-
+    When implementing the application window, be cautious of the error: AttributeError: 'ApplicationWindow' object has no attribute 'get_accel_group'. Did you mean: 'add_accel_group'?
+        This occurs when attempting to assign accelerators incorrectly. Ensure to use .add_accel_group() when adding accelerators.
 
