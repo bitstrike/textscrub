@@ -110,6 +110,9 @@ class ThemeManager:
             # Use system theme
             settings = Gtk.Settings.get_default()
             settings.props.gtk_application_prefer_dark_theme = False
+            
+            # Clear any custom CSS to restore system theme
+            self._clear_custom_css()
         else:
             # Apply custom theme
             self._apply_custom_theme(theme)
@@ -183,6 +186,20 @@ class ThemeManager:
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
 
+    # For resetting theme to "default"
+    def _clear_custom_css(self):
+        """Clear any custom CSS to restore system theme."""
+        css_provider = Gtk.CssProvider()
+        css_provider.load_from_data("".encode())  # Empty CSS
+    
+        screen = Gdk.Screen.get_default()
+        style_context = Gtk.StyleContext()
+        style_context.add_provider_for_screen(
+            screen,
+            css_provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+        )
+
 class BulkReplaceDialog(Gtk.Dialog):
     """Dialog for managing bulk replacement key-value pairs."""
     def __init__(self, parent, config, text_buffer):
@@ -192,11 +209,17 @@ class BulkReplaceDialog(Gtk.Dialog):
         self.config = config
         self.text_buffer = text_buffer
         self.replace_dict = config.config.get("bulk_replace_dict", {}).copy()
-        self.highlight_tag = self.text_buffer.create_tag(
-            "highlight",
-            background="yellow",
-            foreground="black"
-        )
+
+        # Don't create the tags twice
+        tag_table = self.text_buffer.get_tag_table()
+        self.highlight_tag = tag_table.lookup("highlight")
+        if not self.highlight_tag:
+            self.highlight_tag = self.text_buffer.create_tag(
+                "highlight",
+                background="yellow",
+                foreground="black"
+            )
+
         self.replace_mode = False  # False for normal, True for reverse replacement
 
         # Create dialog widgets
@@ -575,6 +598,9 @@ class TextScrubApp(Gtk.Application):
         self.current_file = None
         self.connect("activate", self.on_activate)
 
+        # track the replace mode in the replace dialog class
+        self.replace_mode = False
+        
         # Create an AccelGroup
         self.accel_group = Gtk.AccelGroup()
 
@@ -779,6 +805,15 @@ class TextScrubApp(Gtk.Application):
         bulk_replace_item = Gtk.MenuItem(label="Bulk Replace")
         bulk_replace_item.connect("activate", self._on_bulk_replace_clicked)
         edit_menu.append(bulk_replace_item)
+        
+        # CTRL+R for replace
+        execute_replace_item = Gtk.MenuItem(label="Replace")
+        execute_replace_item.connect("activate", self._on_bulk_replace_execute)
+        execute_replace_item.add_accelerator("activate", self.accel_group, ord('R'), 
+                                             Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE)
+        edit_menu.append(execute_replace_item)
+
+        #bulk_replace_item.add_accelerator("activate", self.accel_group, ord('R'), Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE)
 
         # Separator
         edit_menu.append(Gtk.SeparatorMenuItem())
@@ -962,7 +997,22 @@ class TextScrubApp(Gtk.Application):
         dialog.run()
         dialog.destroy()
 
+    def _on_bulk_replace_execute(self, widget):
+        """Execute bulk replace without showing the dialog."""
+        if self.config.config.get("bulk_replace_dict", {}):
+            # Create dialog just to access replace_bulk functionality
+            dialog = BulkReplaceDialog(self.window, self.config, self.text_buffer)
+            
+            # Pass the current mode to the dialog
+            dialog.replace_mode = self.replace_mode
+            dialog.replace_bulk()
 
+            # save the mode
+            self.replace_mode = dialog.replace_mode
+            dialog.destroy()
+        else:
+            self.update_status("No replacements defined. Set up replacements first.")
+            
     def _on_word_wrap_toggled(self, widget):
         """Handle Word Wrap checkbox toggle."""
         wrap_mode = Gtk.WrapMode.WORD if widget.get_active() else Gtk.WrapMode.NONE
