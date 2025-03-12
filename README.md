@@ -6,6 +6,7 @@ TextScrub is a simple text editor designed to aid in redacting text by bulk repl
 
 I lost some percentage of my eyesight while developing this due to the default white background and black text of the widgets so I added some simple coloring that sort of resembles theming. The submenu items and dialogs are still the default gray and I don't know why. I started to read some documentation on it and it reminded me of C++ and I closed my browser. Besides, this thing was 99% done with AI (I _am_ writing some of the README) and reading documentation takes the fun out of it.
 
+Of note, there is a `textscrub.py` and `textscrub_g.py`. The former is the initial beta using `tkinter`. It's a nice simple library but I thought it would be fun to get the prototype working there and then have AI convert the thign to use GTK.  This is where the latter comes in. It's been quite interesting to see where the various AI models get lost. I was surprised to see how well Phind did, and how miserable DeepSeek is at writing code. But the point is, `textscrub_g.py` is the GTK implementation.
 
 ## Features
 - **Bulk Replace**: Replace multiple keywords with corresponding values throughout the document.
