@@ -93,6 +93,7 @@ class ThemeManager:
                 "highlight_fg": "#000000"
             }
         }
+        self.css_provider = None
 
     def apply_theme(self, theme_name=None):
         """Apply the specified theme to all widgets."""
@@ -120,7 +121,7 @@ class ThemeManager:
     def _apply_custom_theme(self, theme):
         """Apply a custom theme to all widgets."""
         # Create CSS provider
-        css_provider = Gtk.CssProvider()
+        self.css_provider = Gtk.CssProvider()
 
         # Define CSS
         css = f"""
@@ -175,30 +176,25 @@ class ThemeManager:
         }}
         """
 
-        css_provider.load_from_data(css.encode())
+        self.css_provider.load_from_data(css.encode())
 
         # Apply CSS to the application
         screen = Gdk.Screen.get_default()
         style_context = Gtk.StyleContext()
         style_context.add_provider_for_screen(
             screen,
-            css_provider,
+            self.css_provider,
             Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
 
     # For resetting theme to "default"
     def _clear_custom_css(self):
         """Clear any custom CSS to restore system theme."""
-        css_provider = Gtk.CssProvider()
-        css_provider.load_from_data("".encode())  # Empty CSS
-    
         screen = Gdk.Screen.get_default()
         style_context = Gtk.StyleContext()
-        style_context.add_provider_for_screen(
-            screen,
-            css_provider,
-            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-        )
+        if self.css_provider:
+            style_context.remove_provider_for_screen(screen, self.css_provider)
+            self.css_provider = None
 
 class BulkReplaceDialog(Gtk.Dialog):
     """Dialog for managing bulk replacement key-value pairs."""
