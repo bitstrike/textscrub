@@ -600,7 +600,7 @@ class TextScrubApp(Gtk.Application):
 
         # track the replace mode in the replace dialog class
         self.replace_mode = False
-        
+
         # Create an AccelGroup
         self.accel_group = Gtk.AccelGroup()
 
@@ -805,6 +805,8 @@ class TextScrubApp(Gtk.Application):
         bulk_replace_item = Gtk.MenuItem(label="Bulk Replace")
         bulk_replace_item.connect("activate", self._on_bulk_replace_clicked)
         edit_menu.append(bulk_replace_item)
+        bulk_replace_item.add_accelerator("activate", self.accel_group, ord('B'), 
+                                             Gdk.ModifierType.CONTROL_MASK, Gtk.AccelFlags.VISIBLE)
         
         # CTRL+R for replace
         execute_replace_item = Gtk.MenuItem(label="Replace")
